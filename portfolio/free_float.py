@@ -1,5 +1,7 @@
 import yfinance as yf
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib
 
 import warnings
 
@@ -171,7 +173,15 @@ if __name__ == "__main__":
                     end_date = end_date,
                     initial_capital = 1000)
 
-    print(port_returns)
+    ax = port_returns["Portfolio Value"].plot(figsize=(10, 6))
+    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b %Y"))
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Portfolio Value (USD)")
+    ax.legend()
+    ax.tick_params(axis="x", labelrotation=45)
+
+    plt.show()
+
 
 
 
