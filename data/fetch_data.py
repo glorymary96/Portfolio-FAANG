@@ -3,10 +3,19 @@ import pandas as pd
 
 def download_stock_prices(tickers: list,
                   start_date:str,
-                   end_date:str,
+                  end_date:str,
                   auto_adjust:bool = True,
-                  price_field:str = 'Close'):
+                  price_field:str = 'Close') -> pd.DataFrame:
+    """
+    Download data for given tickers between start_date and end_date.
 
+    Parameters:
+        tickers (list): List of ticker symbols
+        start_date (str): Start date in YYYY-MM-DD format
+        end_date (str): End date in YYYY-MM-DD format
+        auto_adjust (bool): Whether to adjust for splits/dividends (default: True)
+        price_field (str): Price field to return (default: 'Close')
+    """
     # To handle single tickers not given as list
     if isinstance(tickers, str):
         tickers = [tickers]
@@ -44,15 +53,14 @@ def load_stock_prices(tickers,start_date:str,end_date:str,auto_adjust:bool = Tru
         progress=False,
     )["Close"]
 
-    data = data.dropna(how="all").sort_index().ffill().reset_index()
-    data = data.rename_axis(None, axis=1)
+    data = data.dropna(how="all").sort_index().ffill()
 
     return data
 
 
 if __name__ == '__main__':
     tickers = ["META", "AMZN", "AAPL", "NFLX", "GOOGL"]
-    tickers = "META"
+    #tickers = "META"
     start_date = "2024-01-01"
     end_date = "2024-12-31"
 
