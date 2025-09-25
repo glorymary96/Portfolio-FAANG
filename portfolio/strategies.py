@@ -7,9 +7,9 @@ import warnings
 
 from data.fetch_data import download_stock_prices
 
-def fetch_free_float(tickers):
+def fetch_compute_weight_free_float(tickers):
     """
-    Fetch free float data for a list of tickers using Yahoo Finance.
+    Fetch free float data for a list of tickers from Yahoo Finance and compute free-float weights.
 
     Parameters
     ----------
@@ -25,6 +25,7 @@ def fetch_free_float(tickers):
         - Free Float Shares (B)
         - Free Float (%)
         - Valid
+        - Free Float Weight
     """
 
     data_list = []
@@ -61,32 +62,15 @@ def fetch_free_float(tickers):
         except Exception as e:
             print(f"Could not get data for {ticker}: {e}")
 
-    return pd.DataFrame(data_list)
-
-def calculate_free_float_weight(df):
-    """
-    Compute the free-float weight of each stock in the universe.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Must contain a column "Free Float Shares (B)" representing free float
-        in billions.
-
-    Returns
-    -------
-    pd.DataFrame
-        Copy of the input DataFrame with an added column:
-        - "Free Float Weight": stock's proportion of total free float.
-    """
-    df = df.copy()
+    df = pd.DataFrame(data_list)
     total = df["Free Float Shares (B)"].sum(skipna=True)
-    if total and total>0:
-        df["Free Float Weight"] = (df["Free Float Shares (B)"]/ total).round(5)
+    if total and total > 0:
+        df["Free Float Weight"] = (df["Free Float Shares (B)"] / total).round(5)
     else:
         df["Free Float Weight"] = None
 
     return df
+
 
 def calculate_porfolio_from_stock_weights(weights, prices, initial_capital=1000):
     """
@@ -127,10 +111,9 @@ def calculate_porfolio_from_stock_weights(weights, prices, initial_capital=1000)
 
     return port_returns
 
-def build_portfolio(tickers, start_date, end_date, auto_adjust=True, price_field = "Close", initial_capital=1000):
+def build_portfolio_free_float(tickers, start_date, end_date, auto_adjust=True, price_field = "Close", initial_capital=1000):
 
-    df_weights = fetch_free_float(tickers)
-    df_weights = calculate_free_float_weight(df_weights)
+    df_weights = fetch_compute_weight_free_float(tickers)
 
     valid = df_weights["Valid"] & df_weights["Free Float Weight"].notnull()
 
@@ -161,13 +144,33 @@ def build_portfolio(tickers, start_date, end_date, auto_adjust=True, price_field
 
     return port_returns, df_weights
 
+def build_portfolio_equal_weight(tickers, start_date, end_date, auto_adjust=True, price_field = "Close", initial_capital=1000):
+    weights = {}
+
+    for ticker in tickers:
+        weights[ticker] = round(1/len(tickers),3)
+
+    df_weights = pd.DataFrame([weights])
+
+    prices = download_stock_prices(
+        tickers=list(weights.keys()),
+        start_date=start_date,
+        end_date=end_date,
+        auto_adjust=auto_adjust,
+        price_field=price_field
+    )
+
+    port_returns = calculate_porfolio_from_stock_weights(weights, prices)
+
+    return port_returns, df_weights
+
 if __name__ == "__main__":
 
-    tickers = ["GOOG", "AMZN"]
+    tickers = ["META", "AMZN", "AAPL", "NFLX", "GOOGL"]
     start_date = "2024-01-01"
     end_date = "2024-12-31"
 
-    port_returns, df_weights = build_portfolio(
+    port_returns, df_weights = build_portfolio_equal_weight(
                     tickers = tickers,
                     start_date = start_date,
                     end_date = end_date,
@@ -180,7 +183,26 @@ if __name__ == "__main__":
     ax.legend()
     ax.tick_params(axis="x", labelrotation=45)
 
+    free_port_returns, free_df_weights = build_portfolio_free_float(
+        tickers=tickers,
+        start_date=start_date,
+        end_date=end_date,
+        initial_capital=1000)
+
+    ax = free_port_returns["Portfolio Value"].plot(figsize=(10, 6))
+    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b %Y"))
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Portfolio Value (USD)")
+    ax.legend()
+    ax.tick_params(axis="x", labelrotation=45)
+
+
+
     plt.show()
+
+
+
+
 
 
 
