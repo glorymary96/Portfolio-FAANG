@@ -14,6 +14,7 @@ This repository provides tools and notebooks to construct, analyze, and visualiz
 ### 1. Portfolio Weight Calculation
 - Computes weights based on **free float shares** (shares available for public trading, excluding insider holdings and restricted shares).
 - Stocks with **higher free floats** have proportionally higher influence in the portfolio.
+- As an alternative, we also consider the **inverse free-float weighting scheme**, where companies with smaller free floats receive larger weights. This approach highlights the impact of less liquid stocks on portfolio performance.
 - Results can be benchmarked against an **equal-weighted portfolio** to evaluate differences in performance.
 
 ### 2. Daily Portfolio Returns
@@ -42,3 +43,5 @@ conda activate portfolio-env
 ```
 pip install -r requirements.txt
 ```
+### 4. Analysis and Backtesting
+All analysis and backtesting are implemented in `notebook` folder

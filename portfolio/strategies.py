@@ -144,6 +144,41 @@ def build_portfolio_free_float(tickers, start_date, end_date, auto_adjust=True, 
 
     return port_returns, df_weights
 
+
+def build_portfolio_inv_free_float(tickers, start_date, end_date, auto_adjust=True, price_field="Close",
+                               initial_capital=1000):
+    df_weights = fetch_compute_weight_free_float(tickers)
+
+    valid = df_weights["Valid"] & df_weights["Free Float Weight"].notnull()
+
+    if not valid.any():
+        warnings.warn("No free float weights available, and thus portfolio cannot be built.")
+        prices = download_stock_prices(tickers=tickers,
+                                       start_date=start_date,
+                                       end_date=end_date,
+                                       auto_adjust=auto_adjust,
+                                       price_field=price_field
+                                       )
+        port_returns = prices.pct_change().fillna(0.0)
+        port_returns["daily_returns"] = 0.0
+        port_returns["Portfolio Value"] = initial_capital
+        return port_returns, df_weights
+
+    df_weights["Inverse"] = 1-df_weights["Free Float Weight"]
+    weights = df_weights.loc[valid].set_index("Ticker")["Inverse"].to_dict()
+
+    prices = download_stock_prices(
+        tickers=list(weights.keys()),
+        start_date=start_date,
+        end_date=end_date,
+        auto_adjust=auto_adjust,
+        price_field=price_field
+    )
+
+    port_returns = calculate_porfolio_from_stock_weights(weights, prices)
+
+    return port_returns, df_weights
+
 def build_portfolio_equal_weight(tickers, start_date, end_date, auto_adjust=True, price_field = "Close", initial_capital=1000):
     weights = {}
 
@@ -196,7 +231,18 @@ if __name__ == "__main__":
     ax.legend()
     ax.tick_params(axis="x", labelrotation=45)
 
+    inv_free_port_returns, inv_free_df_weights = build_portfolio_inv_free_float(
+        tickers=tickers,
+        start_date=start_date,
+        end_date=end_date,
+        initial_capital=1000)
 
+    ax = inv_free_port_returns["Portfolio Value"].plot(figsize=(10, 6))
+    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b %Y"))
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Portfolio Value (USD)")
+    ax.legend()
+    ax.tick_params(axis="x", labelrotation=45)
 
     plt.show()
 
